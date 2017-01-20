@@ -23,405 +23,253 @@ import com.amazon.alexa.avs.wakeword.WakeWordDetectedHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
+//import java.net.URI;
 import java.util.Properties;
-
-import javax.swing.Box;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.SwingWorker;
 
 import com.amazon.alexa.avs.wakeword.WakeWordIPCFactory;
 
 @SuppressWarnings("serial")
-public class AVSApp extends JFrame implements ExpectSpeechListener, RecordingRMSListener,
-        RegCodeDisplayHandler, AccessTokenListener, ExpectStopCaptureListener,
-        WakeWordDetectedHandler {
+public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCodeDisplayHandler, AccessTokenListener, ExpectStopCaptureListener, WakeWordDetectedHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(AVSApp.class);
+	private static final Logger log = LoggerFactory.getLogger(AVSApp.class);
 
-    private static final String APP_TITLE = "Alexa Voice Service";
-    private static final String LISTEN_LABEL = "Listen";
-    private static final String PROCESSING_LABEL = "Processing";
-    private static final String PREVIOUS_LABEL = "\u21E4";
-    private static final String NEXT_LABEL = "\u21E5";
-    private static final String PAUSE_LABEL = "\u275A\u275A";
-    private static final String PLAY_LABEL = "\u25B6";
-    private final AVSController controller;
-    private JButton actionButton;
-    private JButton playPauseButton;
-    private Container playbackPanel;
-    private JTextField tokenTextField;
-    private JProgressBar visualizer;
-    private final DeviceConfig deviceConfig;
- 
-    private String accessToken;
+	private static final String APP_TITLE = "Alexa Voice Service";
+	private final AVSController controller;
+	private final DeviceConfig deviceConfig;
 
-    private AuthSetup authSetup;
+	private AuthSetup authSetup;
 
-    private enum ButtonState {
-        START, STOP, PROCESSING;
-    }
+	private enum ButtonState {
+		START, STOP, PROCESSING;
+	}
 
-    private ButtonState buttonState;
+	private ButtonState buttonState;
 
-    public static void main(String[] args) throws Exception {
-        if (args.length == 1) {
-            new AVSApp(args[0]);
-        } else {
-            new AVSApp();
-        }
-    }
+	public static void main(String[] args) throws Exception {
+		if (args.length == 1) {
+			new AVSApp(args[0]);
+		} else {
+			new AVSApp();
+		}
+	}
 
-    public AVSApp() throws Exception {
-        this(DeviceConfigUtils.readConfigFile());
-    }
+	public AVSApp() throws Exception {
+		this(DeviceConfigUtils.readConfigFile());
+	}
 
-    public AVSApp(String configName) throws Exception {
-        this(DeviceConfigUtils.readConfigFile(configName));
-    }
+	public AVSApp(String configName) throws Exception {
+		this(DeviceConfigUtils.readConfigFile(configName));
+	}
 
-    private AVSApp(DeviceConfig config) throws Exception {
-        deviceConfig = config;
-        controller =
-                new AVSController(this, new AVSAudioPlayerFactory(), new AlertManagerFactory(),
-                        getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
-                        config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
+	private AVSApp(DeviceConfig config) throws Exception {
+		deviceConfig = config;
+		controller = new AVSController(this, new AVSAudioPlayerFactory(), new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
+				config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
 
-        authSetup = new AuthSetup(config, this);
-        authSetup.addAccessTokenListener(this);
-        authSetup.addAccessTokenListener(controller);
-        authSetup.startProvisioningThread();
+		authSetup = new AuthSetup(config, this);
+		authSetup.addAccessTokenListener(this);
+		authSetup.addAccessTokenListener(controller);
+		authSetup.startProvisioningThread();
 
-        addDeviceField();
-        addTokenField();
-        addVisualizerField();
-        addActionField();
-        addPlaybackButtons();
+		// addDeviceField();
+		// addTokenField();
+		// addVisualizerField();
+		// addActionField();
+		// addPlaybackButtons();
 
-        getContentPane().setLayout(new GridLayout(0, 1));
-        setTitle(getAppTitle());
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(400, 200);
-        setVisible(true);
-        controller.initializeStopCaptureHandler(this);
-        controller.startHandlingDirectives();
-    }
+		buttonState = ButtonState.START;
 
-    private String getAppVersion() {
-        final Properties properties = new Properties();
-        try (final InputStream stream = getClass().getResourceAsStream("/res/version.properties")) {
-            properties.load(stream);
-            if (properties.containsKey("version")) {
-                return properties.getProperty("version");
-            }
-        } catch (IOException e) {
-            log.warn("version.properties file not found on classpath");
-        }
-        return null;
-    }
+		controller.initializeStopCaptureHandler(this);
+		controller.startHandlingDirectives();
+	}
 
-    private String getAppTitle() {
-        String version = getAppVersion();
-        String title = APP_TITLE;
-        if (version != null) {
-            title += " - v" + version;
-        }
-        return title;
-    }
+	private String getAppVersion() {
+		final Properties properties = new Properties();
+		try (final InputStream stream = getClass().getResourceAsStream("/res/version.properties")) {
+			properties.load(stream);
+			if (properties.containsKey("version")) {
+				return properties.getProperty("version");
+			}
+		} catch (IOException e) {
+			log.warn("version.properties file not found on classpath");
+		}
+		return null;
+	}
 
-    protected AVSClientFactory getAVSClientFactory(DeviceConfig config) {
-        return new AVSClientFactory(config);
-    }
+	private String getAppTitle() {
+		String version = getAppVersion();
+		String title = APP_TITLE;
+		if (version != null) {
+			title += " - v" + version;
+		}
+		return title;
+	}
 
-    private void addDeviceField() {
-        JLabel productIdLabel = new JLabel(deviceConfig.getProductId());
-        JLabel dsnLabel = new JLabel(deviceConfig.getDsn());
-        productIdLabel.setFont(productIdLabel.getFont().deriveFont(Font.PLAIN));
-        dsnLabel.setFont(dsnLabel.getFont().deriveFont(Font.PLAIN));
+	protected AVSClientFactory getAVSClientFactory(DeviceConfig config) {
+		return new AVSClientFactory(config);
+	}
 
-        FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
-        flowLayout.setHgap(0);
-        JPanel devicePanel = new JPanel(flowLayout);
-        devicePanel.add(new JLabel("Device: "));
-        devicePanel.add(productIdLabel);
-        devicePanel.add(Box.createRigidArea(new Dimension(5, 0)));
-        devicePanel.add(new JLabel("DSN: "));
-        devicePanel.add(dsnLabel);
-        getContentPane().add(devicePanel);
-    }
+	/**
+	 * Respond to a music button press event
+	 *
+	 * @param action
+	 *            Playback action to handle
+	 */
+	// private void musicButtonPressedEventHandler(final PlaybackAction action)
+	// {
+	// SwingWorker<Void, Void> alexaCall = new SwingWorker<Void, Void>() {
+	// @Override
+	// public Void doInBackground() throws Exception {
+	// visualizer.setIndeterminate(true);
+	// controller.handlePlaybackAction(action);
+	// return null;
+	// }
+	//
+	// @Override
+	// public void done() {
+	// visualizer.setIndeterminate(false);
+	// }
+	// };
+	// alexaCall.execute();
+	// }
 
-    private void addTokenField() {
-        getContentPane().add(new JLabel("Bearer Token:"));
-        tokenTextField = new JTextField(50);
-        tokenTextField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                controller.onUserActivity();
-                authSetup.onAccessTokenReceived(tokenTextField.getText());
-            }
-        });
-        getContentPane().add(tokenTextField);
+	// private void createMusicButton(Container container, String label, final
+	// PlaybackAction action) {
+	// JButton button = new JButton(label);
+	// button.setEnabled(true);
+	// button.addActionListener(new ActionListener() {
+	// @Override
+	// public void actionPerformed(ActionEvent e) {
+	// controller.onUserActivity();
+	// musicButtonPressedEventHandler(action);
+	// }
+	// });
+	// container.add(button);
+	// }
 
-        if (accessToken != null) {
-            tokenTextField.setText(accessToken);
-            accessToken = null;
-        }
-    }
+	// private void setPlaybackControlEnabled(boolean enable) {
+	// setComponentsOfContainerEnabled(playbackPanel, enable);
+	// }
 
-    private void addVisualizerField() {
-        visualizer = new JProgressBar(0, 100);
-        getContentPane().add(visualizer);
-    }
+	/**
+	 * Add music control buttons
+	 */
+	// private void addPlaybackButtons() {
+	// playbackPanel = new JPanel();
+	// playbackPanel.setLayout(new GridLayout(1, 5));
+	//
+	// playPauseButton = new JButton(PLAY_LABEL + "/" + PAUSE_LABEL);
+	// playPauseButton.setEnabled(true);
+	// playPauseButton.addActionListener(new ActionListener() {
+	// @Override
+	// public void actionPerformed(ActionEvent e) {
+	//
+	// controller.onUserActivity();
+	// if (controller.isPlaying()) {
+	// musicButtonPressedEventHandler(PlaybackAction.PAUSE);
+	// } else {
+	// musicButtonPressedEventHandler(PlaybackAction.PLAY);
+	// }
+	// }
+	// });
+	//
+	// createMusicButton(playbackPanel, PREVIOUS_LABEL,
+	// PlaybackAction.PREVIOUS);
+	// playbackPanel.add(playPauseButton);
+	//
+	// createMusicButton(playbackPanel, NEXT_LABEL, PlaybackAction.NEXT);
+	// getContentPane().add(playbackPanel);
+	// }
 
-    private void addActionField() {
-        final RecordingRMSListener rmsListener = this;
-        actionButton = new JButton(LISTEN_LABEL);
-        buttonState = ButtonState.START;
-        actionButton.setEnabled(true);
-        actionButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                controller.onUserActivity();
+	public void finishProcessing() {
+		buttonState = ButtonState.START;
+		controller.processingFinished();
+	}
 
-                if (buttonState == ButtonState.START) { // if in idle mode
-                    buttonState = ButtonState.STOP;
-                    setPlaybackControlEnabled(false);
+	@Override
+	public void rmsChanged(int rms) { // AudioRMSListener callback
+		log.info("RMS changed: " + rms);
+	}
 
-                    RequestListener requestListener = new RequestListener() {
+	@Override
+	public void onExpectSpeechDirective() {
+		log.info("onExpectSpeechDirective");
+		Thread thread = new Thread() {
+			@Override
+			public void run() {
+				while (buttonState != ButtonState.START || controller.isSpeaking()) {
+					try {
+						Thread.sleep(500);
+					} catch (Exception e) {
+					}
+				}
+				startRecording();
+			}
+		};
+		thread.start();
+	}
 
-                        @Override
-                        public void onRequestSuccess() {
-                            finishProcessing();
-                        }
+	@Override
+	public void onStopCaptureDirective() {
+		if (buttonState == ButtonState.STOP) {
+			startRecording();
+		}
+	}
 
-                        @Override
-                        public void onRequestError(Throwable e) {
-                            log.error("An error occured creating speech request", e);
-                            JOptionPane.showMessageDialog(getContentPane(), e.getMessage(),
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-                            actionButton.doClick();
-                            finishProcessing();
-                        }
-                    };
-                    controller.startRecording(rmsListener, requestListener);
-                } else { // else we must already be in listening
-                    actionButton.setText(PROCESSING_LABEL); // go into processing mode
-                    actionButton.setEnabled(false);
-                    visualizer.setIndeterminate(true);
-                    buttonState = ButtonState.PROCESSING;
-                    controller.stopRecording(); // stop the recording so the request can complete
-                }
-            }
-        });
+	@Override
+	public void displayRegCode(String regCode) {
+		String regUrl = deviceConfig.getCompanionServiceInfo().getServiceUrl() + "/provision/" + regCode;
 
-        getContentPane().add(actionButton);
-    }
+		if (deviceConfig.isAutoLoginEnabled()) {
+			AutoLogin autoLogin = new AutoLogin(deviceConfig);
+			autoLogin.login(regUrl);
+		} else {
+			log.info("Can not start java client for alexa!");
+		}
+	}
 
-    /**
-     * Respond to a music button press event
-     *
-     * @param action
-     *            Playback action to handle
-     */
-    private void musicButtonPressedEventHandler(final PlaybackAction action) {
-        SwingWorker<Void, Void> alexaCall = new SwingWorker<Void, Void>() {
-            @Override
-            public Void doInBackground() throws Exception {
-                visualizer.setIndeterminate(true);
-                controller.handlePlaybackAction(action);
-                return null;
-            }
+	@Override
+	public synchronized void onAccessTokenReceived(String accessToken) {
+		log.info("Access token received: " + accessToken);
+	}
 
-            @Override
-            public void done() {
-                visualizer.setIndeterminate(false);
-            }
-        };
-        alexaCall.execute();
-    }
+	@Override
+	public synchronized void onWakeWordDetected() {
+		if (buttonState == ButtonState.START) { // if in idle mode
+			log.info("Wake Word was detected");
+			startRecording();
+		}
+	}
 
-    private void createMusicButton(Container container, String label, final PlaybackAction action) {
-        JButton button = new JButton(label);
-        button.setEnabled(true);
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                controller.onUserActivity();
-                musicButtonPressedEventHandler(action);
-            }
-        });
-        container.add(button);
-    }
+	private void startRecording() {
+		controller.onUserActivity();
 
-    private void setPlaybackControlEnabled(boolean enable) {
-        setComponentsOfContainerEnabled(playbackPanel, enable);
-    }
+		if (buttonState == ButtonState.START) { // if in idle mode
+			buttonState = ButtonState.STOP;
+			// setPlaybackControlEnabled(false);
 
-    /**
-     * Recursively Enable/Disable components in a container
-     *
-     * @param container
-     *            Object of type Container (like JPanel).
-     * @param enable
-     *            Set true to enable all components in the container. Set to false to disable all.
-     */
-    private void setComponentsOfContainerEnabled(Container container, boolean enable) {
-        for (Component component : container.getComponents()) {
-            if (component instanceof Container) {
-                setComponentsOfContainerEnabled((Container) component, enable);
-            }
-            component.setEnabled(enable);
-        }
-    }
+			RequestListener requestListener = new RequestListener() {
 
-    /**
-     * Add music control buttons
-     */
-    private void addPlaybackButtons() {
-        playbackPanel = new JPanel();
-        playbackPanel.setLayout(new GridLayout(1, 5));
+				@Override
+				public void onRequestSuccess() {
+					finishProcessing();
+				}
 
-        playPauseButton = new JButton(PLAY_LABEL + "/" + PAUSE_LABEL);
-        playPauseButton.setEnabled(true);
-        playPauseButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+				@Override
+				public void onRequestError(Throwable e) {
+					log.error("An error occured creating speech request", e);
 
-                controller.onUserActivity();
-                if (controller.isPlaying()) {
-                    musicButtonPressedEventHandler(PlaybackAction.PAUSE);
-                } else {
-                    musicButtonPressedEventHandler(PlaybackAction.PLAY);
-                }
-            }
-        });
-
-        createMusicButton(playbackPanel, PREVIOUS_LABEL, PlaybackAction.PREVIOUS);
-        playbackPanel.add(playPauseButton);
-
-        createMusicButton(playbackPanel, NEXT_LABEL, PlaybackAction.NEXT);
-        getContentPane().add(playbackPanel);
-    }
-
-    public void finishProcessing() {
-        actionButton.setText(LISTEN_LABEL);
-        setPlaybackControlEnabled(true);
-        buttonState = ButtonState.START;
-        actionButton.setEnabled(true);
-        visualizer.setIndeterminate(false);
-        controller.processingFinished();
-
-    }
-
-    @Override
-    public void rmsChanged(int rms) { // AudioRMSListener callback
-        visualizer.setValue(rms); // update the visualizer
-    }
-
-    @Override
-    public void onExpectSpeechDirective() {
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                while (!actionButton.isEnabled() || buttonState != ButtonState.START
-                        || controller.isSpeaking()) {
-                    try {
-                        Thread.sleep(500);
-                    } catch (Exception e) {
-                    }
-                }
-                actionButton.doClick();
-            }
-        };
-        thread.start();
-    }
-
-    @Override
-    public void onStopCaptureDirective() {
-        if (buttonState == ButtonState.STOP) {
-            actionButton.doClick();
-        }
-    }
-
-    public int showYesNoDialog(String message, String title) {
-        JTextArea textMessage = new JTextArea(message);
-        textMessage.setEditable(false);
-        return JOptionPane.showConfirmDialog(getContentPane(), textMessage, title,
-                JOptionPane.YES_NO_OPTION);
-    }
-
-    public void showDialog(String message, String title) {
-        JTextArea textMessage = new JTextArea(message);
-        textMessage.setEditable(false);
-        JOptionPane.showMessageDialog(getContentPane(), textMessage, title,
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    @Override
-    public void displayRegCode(String regCode) {
-        String title = "Login to Register/Authenticate your Device";
-        String regUrl =
-                deviceConfig.getCompanionServiceInfo().getServiceUrl() + "/provision/" + regCode;
-        
-        if (deviceConfig.isAutoLoginEnabled()) {
-        	AutoLogin autoLogin = new AutoLogin(deviceConfig);
-        	autoLogin.login(regUrl);
-        } else {
-        	int selected =
-                    showYesNoDialog(
-                            "Please register your device by visiting the following URL in "
-                                    + "a web browser and follow the instructions:\n"
-                                    + regUrl
-                                    + "\n\n Would you like to open the URL automatically in your default browser?",
-                            title);
-            if (selected == JOptionPane.YES_OPTION) {
-                try {
-                    Desktop.getDesktop().browse(new URI(regUrl));
-                } catch (Exception e) {
-                    // Ignore and proceed
-                }
-                title = "Click OK after Registering/Authenticating Device";
-                showDialog(
-                        "If a browser window did not open, please copy and paste the below URL into a "
-                                + "web browser, and follow the instructions:\n" + regUrl
-                                + "\n\n Click the OK button when finished.", title);
-            }
-        }
-        
-    }
-
-    @Override
-    public synchronized void onAccessTokenReceived(String accessToken) {
-        if (tokenTextField == null) {
-            this.accessToken = accessToken;
-        } else {
-            tokenTextField.setText(accessToken);
-        }
-    }
-
-    @Override
-    public synchronized void onWakeWordDetected() {
-        if (buttonState == ButtonState.START) { // if in idle mode
-            log.info("Wake Word was detected");
-            actionButton.doClick();
-        }
-    }
+					// TODO why start again?
+					startRecording();
+					finishProcessing();
+				}
+			};
+			controller.startRecording(this, requestListener);
+		} else { // else we must already be in listening
+			buttonState = ButtonState.PROCESSING;
+			controller.stopRecording(); // stop the recording so the request can complete
+		}
+	}
 }
