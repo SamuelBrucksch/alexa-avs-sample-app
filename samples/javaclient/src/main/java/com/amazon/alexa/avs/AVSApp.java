@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
 import com.amazon.alexa.avs.wakeword.WakeWordIPCFactory;
 
@@ -62,7 +63,10 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	}
 
 	private AVSApp(DeviceConfig config) throws Exception {
-		log.info("Starting AVS App " + getAppVersion() + " ...");
+		// TODO configure logger so that we can use info instead of sysout
+		System.out.println("AVS App starting...");
+		System.out.println("Version " + getAppVersion());
+
 		deviceConfig = config;
 		controller = new AVSController(this, new AVSAudioPlayerFactory(), new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
 				config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
@@ -76,6 +80,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 		controller.initializeStopCaptureHandler(this);
 		controller.startHandlingDirectives();
+		System.out.println("AVS App running...");
 	}
 
 	private String getAppVersion() {
@@ -138,6 +143,25 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	// }
 
 	/**
+	 * Recursively Enable/Disable components in a container
+	 *
+	 * @param container
+	 *            Object of type Container (like JPanel).
+	 * @param enable
+	 *            Set true to enable all components in the container. Set to
+	 *            false to disable all.
+	 */
+	// private void setComponentsOfContainerEnabled(Container container, boolean
+	// enable) {
+	// for (Component component : container.getComponents()) {
+	// if (component instanceof Container) {
+	// setComponentsOfContainerEnabled((Container) component, enable);
+	// }
+	// component.setEnabled(enable);
+	// }
+	// }
+
+	/**
 	 * Add music control buttons
 	 */
 	// private void addPlaybackButtons() {
@@ -174,12 +198,11 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 	@Override
 	public void rmsChanged(int rms) { // AudioRMSListener callback
-		log.info("RMS changed: " + rms);
+		System.out.print("\rVoice Level: " + rms);
 	}
 
 	@Override
 	public void onExpectSpeechDirective() {
-		log.info("onExpectSpeechDirective");
 		Thread thread = new Thread() {
 			@Override
 			public void run() {
@@ -189,7 +212,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 					} catch (Exception e) {
 					}
 				}
-				startRecording();
+				doAction();
 			}
 		};
 		thread.start();
@@ -198,7 +221,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	@Override
 	public void onStopCaptureDirective() {
 		if (buttonState == ButtonState.STOP) {
-			startRecording();
+			doAction();
 		}
 	}
 
@@ -210,50 +233,59 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 			AutoLogin autoLogin = new AutoLogin(deviceConfig);
 			autoLogin.login(regUrl);
 		} else {
-			log.info("Can not start java client for alexa!");
+			System.out.println("Manual login not supported!");
 		}
 	}
 
 	@Override
 	public synchronized void onAccessTokenReceived(String accessToken) {
-		log.info("Access token received: " + accessToken);
+		// this actually means that we are connected now and can use alexa
+		System.out.println("Access token received: " + accessToken);
+
+		// System.out.println("Sending test request...");
+		// doAction();
 	}
 
 	@Override
 	public synchronized void onWakeWordDetected() {
+		System.out.println("Wake Word detected... State: " + buttonState.toString());
 		if (buttonState == ButtonState.START) { // if in idle mode
-			log.info("Wake Word was detected");
-			startRecording();
+			doAction();
 		}
 	}
 
-	private void startRecording() {
+	private RequestListener requestListener = new RequestListener() {
+
+		@Override
+		public void onRequestSuccess() {
+			System.out.println("\r\nRequest success.");
+			finishProcessing();
+		}
+
+		@Override
+		public void onRequestError(Throwable e) {
+			if (e instanceof TimeoutException)
+				System.out.println("\r\nRequest timed out.");
+			else
+				System.out.println("\r\nRequest error: " + e.getMessage());
+			// log.error("An error occured creating speech request", e);
+			doAction();
+			finishProcessing();
+		}
+	};
+
+	private void doAction() {
 		controller.onUserActivity();
 
 		if (buttonState == ButtonState.START) { // if in idle mode
 			buttonState = ButtonState.STOP;
 			// setPlaybackControlEnabled(false);
 
-			RequestListener requestListener = new RequestListener() {
-
-				@Override
-				public void onRequestSuccess() {
-					finishProcessing();
-				}
-
-				@Override
-				public void onRequestError(Throwable e) {
-					log.error("An error occured creating speech request", e);
-
-					// TODO why start again?
-					startRecording();
-					finishProcessing();
-				}
-			};
 			controller.startRecording(this, requestListener);
 		} else { // else we must already be in listening
 			buttonState = ButtonState.PROCESSING;
-			controller.stopRecording(); // stop the recording so the request can complete
+			controller.stopRecording(); // stop the recording so the request can
+										// complete
 		}
 	}
 }
