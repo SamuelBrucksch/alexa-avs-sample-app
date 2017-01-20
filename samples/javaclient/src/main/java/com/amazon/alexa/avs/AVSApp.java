@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-//import java.net.URI;
 import java.util.Properties;
 
 import com.amazon.alexa.avs.wakeword.WakeWordIPCFactory;
@@ -35,7 +34,6 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 	private static final Logger log = LoggerFactory.getLogger(AVSApp.class);
 
-	private static final String APP_TITLE = "Alexa Voice Service";
 	private final AVSController controller;
 	private final DeviceConfig deviceConfig;
 
@@ -64,6 +62,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	}
 
 	private AVSApp(DeviceConfig config) throws Exception {
+		log.info("Starting AVS App " + getAppVersion() + " ...");
 		deviceConfig = config;
 		controller = new AVSController(this, new AVSAudioPlayerFactory(), new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
 				config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
@@ -72,12 +71,6 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		authSetup.addAccessTokenListener(this);
 		authSetup.addAccessTokenListener(controller);
 		authSetup.startProvisioningThread();
-
-		// addDeviceField();
-		// addTokenField();
-		// addVisualizerField();
-		// addActionField();
-		// addPlaybackButtons();
 
 		buttonState = ButtonState.START;
 
@@ -96,15 +89,6 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 			log.warn("version.properties file not found on classpath");
 		}
 		return null;
-	}
-
-	private String getAppTitle() {
-		String version = getAppVersion();
-		String title = APP_TITLE;
-		if (version != null) {
-			title += " - v" + version;
-		}
-		return title;
 	}
 
 	protected AVSClientFactory getAVSClientFactory(DeviceConfig config) {
