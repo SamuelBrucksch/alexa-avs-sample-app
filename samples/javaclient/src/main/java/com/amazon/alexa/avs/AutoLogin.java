@@ -2,38 +2,42 @@ package com.amazon.alexa.avs;
 
 import com.amazon.alexa.avs.config.DeviceConfig;
 
+import org.apache.commons.logging.LogFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 
+import java.io.Console;
 import java.util.logging.*;
 
 /**
  * Automatically authenticate with Amazon
  */
 
-public class AutoLogin {	
-	
-    private String autoLoginUsername;
-    private String autoLoginPassword;
-    
-    /**
+public class AutoLogin {
+
+	private String autoLoginUsername;
+	private String autoLoginPassword;
+
+	/**
 	 * @param deviceConfig
 	 */
-	public AutoLogin(DeviceConfig deviceConfig) {		
+	public AutoLogin(DeviceConfig deviceConfig) {
 		autoLoginUsername = deviceConfig.getAutoLoginUsername();
 		autoLoginPassword = deviceConfig.getAutoLoginPassword();
 	}
-	
+
 	/**
 	 * @param url
 	 */
 	public void login(String url) {
-		
-		Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF); 
-	    Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
-		
+		LogFactory.getFactory().setAttribute("org.apache.commons.logging.Log",
+				"org.apache.commons.logging.impl.NoOpLog");
+
+		Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
+		Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
+
 		WebDriver driver = new HtmlUnitDriver();
 		driver.get(url);
 
@@ -41,11 +45,23 @@ public class AutoLogin {
 		WebElement passwordBox = driver.findElement(By.id("ap_password"));
 		WebElement loginButton = driver.findElement(By.id("signInSubmit"));
 
+		Console console = System.console();
+
+		if (autoLoginUsername == null || autoLoginUsername.isEmpty()) {
+			console.printf("Please enter your e-mail: ");
+			autoLoginUsername = console.readLine();
+		}
+
+		if (autoLoginPassword == null || autoLoginPassword.isEmpty()) {
+			console.printf("Please enter your password: ");
+			char[] passwordChars = console.readPassword();
+			autoLoginPassword = new String(passwordChars);
+		}
+
 		emailBox.sendKeys(autoLoginUsername);
 		passwordBox.sendKeys(autoLoginPassword);
 		passwordBox.submit();
 
 		driver.close();
 	}
-
 }
