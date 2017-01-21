@@ -7,22 +7,28 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.StaleElementReferenceException;
+//import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.logging.*;
 
+
 /**
  * Automatically authenticate with Amazon
  */
-
 public class AutoLogin {
 
 	private String autoLoginUsername;
 	private String autoLoginPassword;
 
-	/**
+	private static final int TIMEOUT = 10;
+    
+    /**
 	 * @param deviceConfig
 	 */
 	public AutoLogin(DeviceConfig deviceConfig) {
@@ -42,8 +48,9 @@ public class AutoLogin {
 		Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
 
 		WebDriver driver = new HtmlUnitDriver();
+		//WebDriver driver = new ChromeDriver();
 		driver.get(url);
-
+		
 		WebElement emailBox = driver.findElement(By.id("ap_email"));
 		WebElement passwordBox = driver.findElement(By.id("ap_password"));
 		WebElement loginButton = driver.findElement(By.id("signInSubmit"));
@@ -85,7 +92,34 @@ public class AutoLogin {
 		emailBox.sendKeys(autoLoginUsername);
 		passwordBox.sendKeys(autoLoginPassword);
 		passwordBox.submit();
-
+		
+		// wait for page to load
+		try {
+			(new WebDriverWait(driver, TIMEOUT)).until(stalenessOf(emailBox));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			WebElement okayButton = driver.findElement(By.name("consentApproved"));
+			okayButton.click();
+		} catch (Exception e) {
+			//e.printStackTrace();
+		}
+		
 		driver.close();
+	}
+	
+	private ExpectedCondition<Boolean> stalenessOf(final WebElement element) {
+	    return new ExpectedCondition<Boolean>() {
+	      public Boolean apply(WebDriver ignored) {
+	        try {
+	          element.isEnabled();
+	          return false;
+	        } catch (StaleElementReferenceException expected) {
+	          return true;
+	        }
+	      }
+	    };
 	}
 }
