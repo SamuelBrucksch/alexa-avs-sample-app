@@ -381,6 +381,8 @@ Auto_Start_Enabled="false"
 fi
 
 Auto_Login_Enabled="true"
+#if auto start is true we need auto login and assume that user wants to select it anyways
+if [ "$Auto_Start_Enabled" = "false" ]; then
 # Check if user wants to enable Auto Login
 clear
 echo "=== Enabling Auto Login ===="
@@ -396,6 +398,7 @@ parse_user_input 1 1 1
 USER_RESPONSE=$?
 if [ "$USER_RESPONSE" = "$NO_ANSWER" ]; then
 Auto_Login_Enabled="false"
+fi
 fi
 
 if [ "$USER_RESPONSE" = "$YES_ANSWER" ]; then
@@ -584,7 +587,7 @@ cd $Wake_Word_Agent_Loc/tst && cmake . && make -j4
 chown -R $User:$Group $Origin
 chown -R $User:$Group /home/$User/.asoundrc
 
-if ("$Auto_Start_Enabled" = "true")
+if [ "$Auto_Start_Enabled" = "true" ]; then
 echo "========== Installing Autostart Scripts =========="
 #TODO
 
