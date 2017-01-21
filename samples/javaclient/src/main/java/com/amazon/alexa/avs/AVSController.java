@@ -496,7 +496,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
     public void stopRecording() {
         speechRequestAudioPlayerPauseController.finishedListening();
-        if (microphone != null)
+        if (microphone != null) //TODO this sometimes throws a NPE, not investigated yet, just checking for NULL for now
         	microphone.stopCapture();
 
         if (this.wakeWordAgentEnabled) {

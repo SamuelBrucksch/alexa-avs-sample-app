@@ -30,7 +30,6 @@ import java.util.concurrent.TimeoutException;
 
 import com.amazon.alexa.avs.wakeword.WakeWordIPCFactory;
 
-@SuppressWarnings("serial")
 public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCodeDisplayHandler, AccessTokenListener, ExpectStopCaptureListener, WakeWordDetectedHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(AVSApp.class);

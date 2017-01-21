@@ -359,6 +359,27 @@ if [ "$USER_RESPONSE" = "$NO_ANSWER" ]; then
   Wake_Word_Detection_Enabled="false"
 fi
 
+Auto_Start_Enabled="true"
+# Check if user wants to enable Auto Start
+clear
+echo "=== Enabling Auto Start ===="
+echo ""
+echo ""
+echo "Do you want to enable Auto Start of Alexa service?"
+echo ""
+echo "This requires working credentials in the next step."
+echo "  If none are provided, autostart will not work.  "
+echo ""
+echo ""
+echo "======================================================="
+echo ""
+echo ""
+parse_user_input 1 1 1
+USER_RESPONSE=$?
+if [ "$USER_RESPONSE" = "$NO_ANSWER" ]; then
+Auto_Start_Enabled="false"
+fi
+
 Auto_Login_Enabled="true"
 # Check if user wants to enable Auto Login
 clear
@@ -386,28 +407,6 @@ echo
 echo "Enter your Amazon password here (doesn't echo) or enter it manually in /samples/javaclient/config.json after the install finishes."
 read -p "Password: " -s Auto_Login_Password
 echo
-fi
-
-Auto_Start_Enabled="true"
-# Check if user wants to enable Auto Start
-clear
-echo "=== Enabling Auto Start ===="
-echo ""
-echo ""
-echo "Do you want to enable Auto Start of Alexa service?"
-echo ""
-echo ""
-echo "======================================================="
-echo ""
-echo ""
-parse_user_input 1 1 1
-USER_RESPONSE=$?
-if [ "$USER_RESPONSE" = "$NO_ANSWER" ]; then
-Auto_Start_Enabled="false"
-fi
-
-if [ "$USER_RESPONSE" = "$YES_ANSWER" ]; then
-Auto_Start_Enabled="true"
 fi
 
 # Preconfigured variables
@@ -584,6 +583,12 @@ cd $Wake_Word_Agent_Loc/tst && cmake . && make -j4
 
 chown -R $User:$Group $Origin
 chown -R $User:$Group /home/$User/.asoundrc
+
+if ("$Auto_Start_Enabled" = "true")
+echo "========== Installing Autostart Scripts =========="
+#TODO
+
+fi
 
 echo ""
 echo '============================='
