@@ -388,6 +388,28 @@ read -p "Password: " -s Auto_Login_Password
 echo
 fi
 
+Auto_Start_Enabled="true"
+# Check if user wants to enable Auto Start
+clear
+echo "=== Enabling Auto Start ===="
+echo ""
+echo ""
+echo "Do you want to enable Auto Start of Alexa service?"
+echo ""
+echo ""
+echo "======================================================="
+echo ""
+echo ""
+parse_user_input 1 1 1
+USER_RESPONSE=$?
+if [ "$USER_RESPONSE" = "$NO_ANSWER" ]; then
+Auto_Start_Enabled="false"
+fi
+
+if [ "$USER_RESPONSE" = "$YES_ANSWER" ]; then
+Auto_Start_Enabled="true"
+fi
+
 # Preconfigured variables
 OS=rpi
 User=$(id -un)
