@@ -1,3 +1,12 @@
+## Raspberry-Pi Instructions:
+1. git clone https://github.com/SamuelBrucksch/alexa-avs-sample-app/
+2. cd alexa-avs-sample-app
+3. enter Device ID, and the other 2 Strings like in the original instructions
+4. run automated_install.sh
+5. if you want to make use of the additional features added here you need to select auto start and enter working credentials
+6. configure you alsa configuration. you can test with aplay test.wav and arecord -d 10 test.wav, both should work without any additional parameters. If both commands work then alexa will work as well.
+7. reboot
+
 ![](../../wiki/assets/alexa-logo-3.png)
 
 ## About the project
