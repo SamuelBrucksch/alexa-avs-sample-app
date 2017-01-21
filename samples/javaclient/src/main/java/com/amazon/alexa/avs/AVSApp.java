@@ -232,6 +232,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		if (deviceConfig.isAutoLoginEnabled()) {
 			AutoLogin autoLogin = new AutoLogin(deviceConfig);
 			autoLogin.login(regUrl);
+			System.out.println("Logging in to Alexa Service...");
 		} else {
 			System.out.println("Manual login not supported!");
 		}

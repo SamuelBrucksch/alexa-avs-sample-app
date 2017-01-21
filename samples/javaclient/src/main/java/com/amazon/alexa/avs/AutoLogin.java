@@ -8,7 +8,9 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 
-import java.io.Console;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.logging.*;
 
 /**
@@ -45,17 +47,36 @@ public class AutoLogin {
 		WebElement passwordBox = driver.findElement(By.id("ap_password"));
 		WebElement loginButton = driver.findElement(By.id("signInSubmit"));
 
-		Console console = System.console();
-
 		if (autoLoginUsername == null || autoLoginUsername.isEmpty()) {
-			console.printf("Please enter your e-mail: ");
-			autoLoginUsername = console.readLine();
+			System.out.print("Please enter your e-mail: ");
+			if (System.console() != null){
+//				System.console().printf("Please enter your e-mail: ");
+				autoLoginUsername = System.console().readLine();
+			}else{
+				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+				try {
+					autoLoginUsername = reader.readLine();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		if (autoLoginPassword == null || autoLoginPassword.isEmpty()) {
-			console.printf("Please enter your password: ");
-			char[] passwordChars = console.readPassword();
-			autoLoginPassword = new String(passwordChars);
+			System.out.print("Please enter your password: ");
+			if (System.console() != null){
+//				System.console().printf("Please enter your password: ");
+				char[] passwordChars = System.console().readPassword();
+				autoLoginPassword = new String(passwordChars);
+			}else{
+				System.out.print("\rPlease enter your password (password is visible): ");
+				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+				try {
+					autoLoginPassword = reader.readLine();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		emailBox.sendKeys(autoLoginUsername);
