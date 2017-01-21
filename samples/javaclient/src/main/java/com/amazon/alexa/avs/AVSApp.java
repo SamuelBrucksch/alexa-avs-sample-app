@@ -39,11 +39,12 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	private final DeviceConfig deviceConfig;
 
 	private AuthSetup authSetup;
+	private boolean tokenReceived = false;
 
 	private enum ButtonState {
 		START, STOP, PROCESSING;
 	}
-
+	
 	private ButtonState buttonState;
 
 	public static void main(String[] args) throws Exception {
@@ -67,6 +68,8 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		System.out.println("AVS App starting...");
 		System.out.println("Version " + getAppVersion());
 
+		tokenReceived = false;
+		
 		deviceConfig = config;
 		controller = new AVSController(this, new AVSAudioPlayerFactory(), new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
 				config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
@@ -240,16 +243,21 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 	@Override
 	public synchronized void onAccessTokenReceived(String accessToken) {
+		if (accessToken == null || accessToken.isEmpty()){
+			System.out.println("Access token is empty or null!");
+			return;
+		}
 		// this actually means that we are connected now and can use alexa
-		System.out.println("Access token received: " + accessToken);
-
-		// System.out.println("Sending test request...");
-		// doAction();
+		System.out.println("Access token received: " + accessToken + "\nConnected to Alexa Service.");
+		tokenReceived = true;
 	}
 
 	@Override
 	public synchronized void onWakeWordDetected() {
-		System.out.println("Wake Word detected... State: " + buttonState.toString());
+		//prevent wake word action if not connected yet
+		if (!tokenReceived)
+			return;
+		
 		if (buttonState == ButtonState.START) { // if in idle mode
 			doAction();
 		}
