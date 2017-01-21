@@ -496,7 +496,8 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
     public void stopRecording() {
         speechRequestAudioPlayerPauseController.finishedListening();
-        microphone.stopCapture();
+        if (microphone != null)
+        	microphone.stopCapture();
 
         if (this.wakeWordAgentEnabled) {
             try {
