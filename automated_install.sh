@@ -593,9 +593,9 @@ if [ "$Auto_Start_Enabled" = "true" ]; then
 echo "========== Installing Autostart Scripts =========="
 # generate run scripts in project folders
 echo "Copying over start scripts into project folders"
-printf "#!/bin/bash\ncd $Companion_Service_Loc\nnpm start > $Companion_Service_Loc/companion.log 2>&1" | tee $Companion_Service_Loc/companion.sh
-printf "#!/bin/bash\ncd $Java_Client_Loc\nmvn exec:exec > $Java_Client_Loc/javascript.log 2>&1" | tee $Java_Client_Loc/javaclient.sh
-printf "#!/bin/bash\ncd $Wake_Word_Agent_Loc/src\nnpm start > $Wake_Word_Agent_Loc/src/companion.log 2>&1" | tee $Wake_Word_Agent_Loc/src/wakeword.sh
+printf "#!/bin/bash\ncd $Companion_Service_Loc\nnpm start > $Companion_Service_Loc/companion.log 2>&1\n" | tee $Companion_Service_Loc/companion.sh
+printf "#!/bin/bash\ncd $Java_Client_Loc\nmvn exec:exec > $Java_Client_Loc/javaclient.log 2>&1\n" | tee $Java_Client_Loc/javaclient.sh
+printf "#!/bin/bash\ncd $Wake_Word_Agent_Loc/src\nnpm start > $Wake_Word_Agent_Loc/src/companion.log 2>&1\n" | tee $Wake_Word_Agent_Loc/src/wakeword.sh
 # make them executable
 echo "Configuring file permissions for start scripts"
 sudo chmod +x $Companion_Service_Loc/companion.sh
