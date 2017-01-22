@@ -1,19 +1,19 @@
 ## Raspberry-Pi Instructions:
 Raspbian preparation
-1. download raspbian jessie lite (no xserver, only headless)
-2. put on sd card
-3. enable SSH by putting a file named 'ssh' in the boot partition (https://www.raspberrypi.org/documentation/remote-access/ssh/ see enable ssh)
+* download raspbian jessie lite (no xserver, only headless)
+* put on sd card
+* enable SSH by putting a file named 'ssh' in the boot partition (https://www.raspberrypi.org/documentation/remote-access/ssh/ see enable ssh)
 
 Alexa steps
-0. connect to raspi with ssh client (putty on windows or ssh on linux) username pi, password raspberry
-1. git clone https://github.com/SamuelBrucksch/alexa-avs-sample-app/
-2. cd alexa-avs-sample-app
-3. enter Device ID, and the other 2 Strings like in the original instructions
-4. run automated_install.sh
-5. if you want to make use of the additional features added here you need to select auto start and enter working credentials
-6. (optional) configure alsa based on your config. you can test with aplay test.wav and arecord -d 10 test.wav, both should work without any additional parameters. If both commands work then alexa will work as well (at least audio wise).
-7. (optional) increase speaker volume as default is quite low, open ``alsamixer`` to increase volume and save with ``sudo alsactl store``
-8. reboot
+* connect to raspi with ssh client (putty on windows or ssh on linux) username pi, password raspberry
+* git clone https://github.com/SamuelBrucksch/alexa-avs-sample-app/
+* cd alexa-avs-sample-app
+* enter Device ID, and the other 2 Strings like in the original instructions
+* run automated_install.sh
+* if you want to make use of the additional features added here you need to select auto start and enter working credentials
+* (optional) configure alsa based on your config. you can test with aplay test.wav and arecord -d 10 test.wav, both should work without any additional parameters. If both commands work then alexa will work as well (at least audio wise).
+* (optional) increase speaker volume as default is quite low, open ``alsamixer`` to increase volume and save with ``sudo alsactl store``
+* reboot
 
 ![](../../wiki/assets/alexa-logo-3.png)
 
