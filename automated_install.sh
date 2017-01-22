@@ -595,7 +595,7 @@ echo "========== Installing Autostart Scripts =========="
 echo "Copying over start scripts into project folders"
 printf "#!/bin/bash\ncd $Companion_Service_Loc\nnpm start > $Companion_Service_Loc/companion.log 2>&1\n" | tee $Companion_Service_Loc/companion.sh
 printf "#!/bin/bash\ncd $Java_Client_Loc\nmvn exec:exec > $Java_Client_Loc/javaclient.log 2>&1\n" | tee $Java_Client_Loc/javaclient.sh
-printf "#!/bin/bash\ncd $Wake_Word_Agent_Loc/src\nnpm start > $Wake_Word_Agent_Loc/src/companion.log 2>&1\n" | tee $Wake_Word_Agent_Loc/src/wakeword.sh
+printf "#!/bin/bash\ncd $Wake_Word_Agent_Loc/src\n./wakeWordAgent -e sensory > $Wake_Word_Agent_Loc/src/wakeword.log 2>&1\n" | tee $Wake_Word_Agent_Loc/src/wakeword.sh
 # make them executable
 echo "Configuring file permissions for start scripts"
 sudo chmod +x $Companion_Service_Loc/companion.sh
@@ -604,9 +604,9 @@ sudo chmod +x $Wake_Word_Agent_Loc/src/wakeword.sh
 
 # create systemd services
 echo "Generating systemd services..."
-printf "[Unit]\nDescription=Alexa Companion Service\nAfter=multi-user.target\n\n[Service]\nRestart=always\nExecStart=/bin/bash $Companion_Service_Loc/companion.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/companion.service
-printf "[Unit]\nDescription=Alexa Java Client\nAfter=multi-user.target\n\n[Service]\nRestart=always\nExecStart=/bin/bash $Java_Client_Loc/javaclient.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/javaclient.service
-printf "[Unit]\nDescription=Alexa Wake Word Agent\nAfter=multi-user.target\n\n[Service]\nRestart=always\nExecStart=/bin/bash $Wake_Word_Agent_Loc/src/wakeword.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/wakeword.service
+printf "[Unit]\nDescription=Alexa Companion Service\nAfter=multi-user.target\n\n[Service]\nUser=pi\nRestart=always\nExecStart=/bin/bash $Companion_Service_Loc/companion.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/companion.service
+printf "[Unit]\nDescription=Alexa Java Client\nAfter=multi-user.target\n\n[Service]\nUser=pi\nRestart=always\nExecStart=/bin/bash $Java_Client_Loc/javaclient.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/javaclient.service
+printf "[Unit]\nDescription=Alexa Wake Word Agent\nAfter=multi-user.target\n\n[Service]\nUser=pi\nRestart=always\nExecStart=/bin/bash $Wake_Word_Agent_Loc/src/wakeword.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/wakeword.service
 echo "Configurung file permissions for services"
 sudo chmod 644 /lib/systemd/system/companion.service
 sudo chmod 644 /lib/systemd/system/javaclient.service
