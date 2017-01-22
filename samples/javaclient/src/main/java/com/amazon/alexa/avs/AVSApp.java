@@ -251,9 +251,11 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		}
 		// this actually means that we are connected now and can use alexa
 		System.out.println("Access token received: " + accessToken + "\nConnected to Alexa Service.");
+		
+		//play sound when token is received so we know we can start using it
+		//TODO change alarm.mp3 to something like "Hello, this is Alexa, how can i help you today"
 		tokenReceived = true;
-		player.playMp3FromResource("res/start.mp3");
-		//TODO play sound
+		player.playMp3FromResource("res/alarm.mp3");
 	}
 
 	@Override

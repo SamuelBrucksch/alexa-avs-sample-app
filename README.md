@@ -4,8 +4,9 @@
 3. enter Device ID, and the other 2 Strings like in the original instructions
 4. run automated_install.sh
 5. if you want to make use of the additional features added here you need to select auto start and enter working credentials
-6. configure you alsa configuration. you can test with aplay test.wav and arecord -d 10 test.wav, both should work without any additional parameters. If both commands work then alexa will work as well (at least audio wise).
-7. reboot
+6. (optional) configure alsa based on your config. you can test with aplay test.wav and arecord -d 10 test.wav, both should work without any additional parameters. If both commands work then alexa will work as well (at least audio wise).
+7. (optional) set sound to 90%, open alsamixer to increase volume and save with ``sudo alsactl store``
+8. reboot
 
 ![](../../wiki/assets/alexa-logo-3.png)
 
