@@ -10,7 +10,7 @@ import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.StaleElementReferenceException;
-//import org.openqa.selenium.chrome.ChromeDriver;
+import com.gargoylesoftware.htmlunit.BrowserVersion;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,19 +46,12 @@ public class AutoLogin {
 
 		Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
 		Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
-
-		WebDriver driver = new HtmlUnitDriver();
+			    
+	    HtmlUnitDriver driver = new HtmlUnitDriver(BrowserVersion.CHROME);
 		//WebDriver driver = new ChromeDriver();
+		
 		driver.get(url);
 		
-		WebElement emailBox = driver.findElement(By.id("ap_email"));
-		WebElement passwordBox = driver.findElement(By.id("ap_password"));
-		WebElement loginButton = driver.findElement(By.id("signInSubmit"));
-
-		// manual login seems to prevent session errors when logging in
-		// headless. maybe there needs to be added an additional delay
-		// in between for auto login to prevent session errors.
-
 		if (autoLoginUsername == null || autoLoginUsername.isEmpty()) {
 			System.out.print("Please enter your e-mail: ");
 			if (System.console() != null) {
@@ -88,14 +81,20 @@ public class AutoLogin {
 				}
 			}
 		}
-
+		
+		WebElement emailBox = driver.findElement(By.id("ap_email"));	
+		//emailBox.click();
 		emailBox.sendKeys(autoLoginUsername);
+		
+		WebElement passwordBox = driver.findElement(By.id("ap_password"));
 		passwordBox.sendKeys(autoLoginPassword);
+
+		driver.setJavascriptEnabled(true);
 		passwordBox.submit();
 		
 		// wait for page to load
 		try {
-			(new WebDriverWait(driver, TIMEOUT)).until(stalenessOf(emailBox));
+			(new WebDriverWait(driver, TIMEOUT)).until(stalenessOf(passwordBox));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -103,6 +102,8 @@ public class AutoLogin {
 		try {
 			WebElement okayButton = driver.findElement(By.name("consentApproved"));
 			okayButton.click();
+			
+			(new WebDriverWait(driver, TIMEOUT)).until(stalenessOf(okayButton));
 		} catch (Exception e) {
 			//e.printStackTrace();
 		}
