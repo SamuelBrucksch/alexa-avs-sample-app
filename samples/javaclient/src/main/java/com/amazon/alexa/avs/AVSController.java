@@ -297,7 +297,9 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
                 } catch (InterruptedException e1) {
                     log.error("exception:", e1);
                 }
-            }
+            } catch (NullPointerException e) {
+				log.error("Mic is not available!!!");
+			}
         }
 
         throw new LineUnavailableException();
