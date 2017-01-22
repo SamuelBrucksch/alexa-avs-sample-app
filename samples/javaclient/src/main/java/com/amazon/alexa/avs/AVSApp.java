@@ -34,6 +34,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 	private static final Logger log = LoggerFactory.getLogger(AVSApp.class);
 
+	private final AVSAudioPlayer player;
 	private final AVSController controller;
 	private final DeviceConfig deviceConfig;
 
@@ -70,9 +71,11 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		tokenReceived = false;
 		
 		deviceConfig = config;
-		controller = new AVSController(this, new AVSAudioPlayerFactory(), new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
+		AVSAudioPlayerFactory factory = new AVSAudioPlayerFactory();
+		controller = new AVSController(this, factory, new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
 				config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
-
+		player = factory.getAudioPlayer(controller);
+		
 		authSetup = new AuthSetup(config, this);
 		authSetup.addAccessTokenListener(this);
 		authSetup.addAccessTokenListener(controller);
@@ -249,6 +252,8 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		// this actually means that we are connected now and can use alexa
 		System.out.println("Access token received: " + accessToken + "\nConnected to Alexa Service.");
 		tokenReceived = true;
+		player.playMp3FromResource("res/start.mp3");
+		//TODO play sound
 	}
 
 	@Override
