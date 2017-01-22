@@ -287,7 +287,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
         for (; numberRetries > 0; numberRetries--) {
             try {
                 return microphone.getAudioInputStream(controller, rmsListener);
-            } catch (LineUnavailableException | IOException e) {
+            } catch (LineUnavailableException | IOException | NullPointerException e) {
                 if (numberRetries == 1) {
                     throw e;
                 }
@@ -297,9 +297,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
                 } catch (InterruptedException e1) {
                     log.error("exception:", e1);
                 }
-            } catch (NullPointerException e) {
-				log.error("Mic is not available!!!");
-			}
+            } 
         }
 
         throw new LineUnavailableException();

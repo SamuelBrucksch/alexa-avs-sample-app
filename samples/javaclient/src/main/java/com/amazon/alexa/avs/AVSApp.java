@@ -48,6 +48,16 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	private ButtonState buttonState;
 
 	public static void main(String[] args) throws Exception {
+		//kill any running wake word service
+		try {
+		    // Execute command
+			System.out.println("Stopping wake word service");
+		    String command = "sudo service wakeword stop";
+		    Process child = Runtime.getRuntime().exec(command);
+		    child.waitFor();
+		} catch (IOException e) {
+		}
+		
 		if (args.length == 1) {
 			new AVSApp(args[0]);
 		} else {
@@ -252,6 +262,18 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		// this actually means that we are connected now and can use alexa
 		System.out.println("Access token received: " + accessToken + "\nConnected to Alexa Service.");
 		
+		try {
+		    // Execute command
+			System.out.println("Starting wake word service");
+		    String command = "sudo service wakeword start";
+		    Runtime.getRuntime().exec(command);
+		} catch (IOException e) {
+			log.error("Exception during wakeword service start: " + e.getMessage());
+			e.printStackTrace();
+			//if wakeword service does not start no need to continue 
+			System.exit(0);
+		}
+		
 		//play sound when token is received so we know we can start using it
 		//TODO change alarm.mp3 to something like "Hello, this is Alexa, how can i help you today"
 		tokenReceived = true;
@@ -264,7 +286,10 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		if (!tokenReceived)
 			return;
 		
+		//this is executed too fast, wake word listener did not pause yet, this is why the mic is not available!
+		
 		if (buttonState == ButtonState.START) { // if in idle mode
+			System.out.println("Wake Word detected.");
 			doAction();
 		}
 	}
@@ -279,6 +304,8 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 		@Override
 		public void onRequestError(Throwable e) {
+			//TODO currently alexa service hangs up if e returns null request error...
+			e.printStackTrace(); 
 			if (e instanceof TimeoutException)
 				System.out.println("\r\nRequest timed out.");
 			else
@@ -296,6 +323,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 			buttonState = ButtonState.STOP;
 			// setPlaybackControlEnabled(false);
 
+			System.out.println("Start recording");
 			controller.startRecording(this, requestListener);
 		} else { // else we must already be in listening
 			buttonState = ButtonState.PROCESSING;

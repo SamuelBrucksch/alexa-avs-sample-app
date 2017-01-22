@@ -616,7 +616,8 @@ sudo systemctl daemon-reload
 echo "Enabling services..."
 sudo systemctl enable companion.service
 sudo systemctl enable javaclient.service
-sudo systemctl enable wakeword.service
+# no automatic start of wakeword as that is started from within javaclient to prevent mic not available errors
+#sudo systemctl enable wakeword.service
 echo "Services enabled, will start automatically after reboot."
 fi
 
