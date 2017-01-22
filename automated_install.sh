@@ -581,6 +581,8 @@ cp -R $External_Loc/* $Wake_Word_Agent_Loc/tst/ext
 cd $Origin
 
 echo "========== Compiling Wake Word Agent =========="
+#if using raspbian lite wiring pi is required
+sudo apt-get install wiringpi
 cd $Wake_Word_Agent_Loc/src && cmake . && make -j4
 cd $Wake_Word_Agent_Loc/tst && cmake . && make -j4
 
@@ -589,13 +591,13 @@ chown -R $User:$Group /home/$User/.asoundrc
 
 if [ "$Auto_Start_Enabled" = "true" ]; then
 echo "========== Installing Autostart Scripts =========="
-# copy run scripts into the project folders
+# generate run scripts in project folders
 echo "Copying over start scripts into project folders"
-cp $Origin/companion.sh $Companion_Service_Loc
-cp $Origin/javaclient.sh $Java_Client_Loc
-cp $Origin/wakeword.sh $Wake_Word_Agent_Loc/src
+printf "#!/bin/bash\ncd $Companion_Service_Loc\nnpm start > $Companion_Service_Loc/companion.log 2>&1" | tee $Companion_Service_Loc/companion.sh
+printf "#!/bin/bash\ncd $Java_Client_Loc\nmvn exec:exec > $Java_Client_Loc/javascript.log 2>&1" | tee $Java_Client_Loc/javaclient.sh
+printf "#!/bin/bash\ncd $Wake_Word_Agent_Loc/src\nnpm start > $Wake_Word_Agent_Loc/src/companion.log 2>&1" | tee $Wake_Word_Agent_Loc/src/wakeword.sh
 # make them executable
-echo "Writing file permissions"
+echo "Configuring file permissions for start scripts"
 sudo chmod +x $Companion_Service_Loc/companion.sh
 sudo chmod +x $Java_Client_Loc/javaclient.sh
 sudo chmod +x $Wake_Word_Agent_Loc/src/wakeword.sh
@@ -605,7 +607,7 @@ echo "Generating systemd services..."
 printf "[Unit]\nDescription=Alexa Companion Service\nAfter=multi-user.target\n\n[Service]\nRestart=always\nExecStart=/bin/bash $Companion_Service_Loc/companion.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/companion.service
 printf "[Unit]\nDescription=Alexa Java Client\nAfter=multi-user.target\n\n[Service]\nRestart=always\nExecStart=/bin/bash $Java_Client_Loc/javaclient.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/javaclient.service
 printf "[Unit]\nDescription=Alexa Wake Word Agent\nAfter=multi-user.target\n\n[Service]\nRestart=always\nExecStart=/bin/bash $Wake_Word_Agent_Loc/src/wakeword.sh\n\n[Install]\nWantedBy=multi-user.target" | sudo tee /lib/systemd/system/wakeword.service
-echo "Writing file permissions to services..."
+echo "Configurung file permissions for services"
 sudo chmod 644 /lib/systemd/system/companion.service
 sudo chmod 644 /lib/systemd/system/javaclient.service
 sudo chmod 644 /lib/systemd/system/wakeword.service
