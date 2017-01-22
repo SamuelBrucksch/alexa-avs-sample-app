@@ -99,14 +99,15 @@ public class AutoLogin {
 			e.printStackTrace();
 		}
 		
-		try {
-			WebElement okayButton = driver.findElement(By.name("consentApproved"));
+		//this somehow causes the login to time out?
+		/*try {
+			WebElement okayButton = driver.findElement(By.className("signin-button-text"));
 			okayButton.click();
 			
 			(new WebDriverWait(driver, TIMEOUT)).until(stalenessOf(okayButton));
 		} catch (Exception e) {
-			//e.printStackTrace();
-		}
+			e.printStackTrace();
+		}*/
 		
 		driver.close();
 	}
