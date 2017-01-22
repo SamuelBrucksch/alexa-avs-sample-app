@@ -28,6 +28,8 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
+import javax.sound.sampled.LineUnavailableException;
+
 import com.amazon.alexa.avs.wakeword.WakeWordIPCFactory;
 
 public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCodeDisplayHandler, AccessTokenListener, ExpectStopCaptureListener, WakeWordDetectedHandler {
@@ -286,8 +288,6 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		if (!tokenReceived)
 			return;
 		
-		//this is executed too fast, wake word listener did not pause yet, this is why the mic is not available!
-		
 		if (buttonState == ButtonState.START) { // if in idle mode
 			System.out.println("Wake Word detected.");
 			doAction();
@@ -305,12 +305,15 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		@Override
 		public void onRequestError(Throwable e) {
 			//TODO currently alexa service hangs up if e returns null request error...
-			e.printStackTrace(); 
 			if (e instanceof TimeoutException)
 				System.out.println("\r\nRequest timed out.");
-			else
+			else if (e instanceof LineUnavailableException)
+				System.out.println("\r\nMic unavailable...");
+			else{
 				System.out.println("\r\nRequest error: " + e.getMessage());
-			// log.error("An error occured creating speech request", e);
+				e.printStackTrace();
+			}
+			
 			doAction();
 			finishProcessing();
 		}
