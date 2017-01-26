@@ -256,31 +256,39 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		}
 	}
 
+	private token = null;
+	
 	@Override
 	public synchronized void onAccessTokenReceived(String accessToken) {
 		if (accessToken == null || accessToken.isEmpty()){
 			System.out.println("Access token is empty or null!");
+			tokenReceived = false;
+			this.token = accessToken;
 			return;
 		}
 		// this actually means that we are connected now and can use alexa
 		System.out.println("Access token received: " + accessToken + "\nConnected to Alexa Service.");
 		
-		try {
-		    // Execute command
-			System.out.println("Starting wake word service");
-		    String command = "sudo service wakeword start";
-		    Runtime.getRuntime().exec(command);
-		} catch (IOException e) {
-			log.error("Exception during wakeword service start: " + e.getMessage());
-			e.printStackTrace();
-			//if wakeword service does not start no need to continue 
-			System.exit(0);
-		}
+		//if this.accessToken == null then we receive it for the first time
+		if (this.token == null){
+			try {
+				// Execute command
+				System.out.println("Starting wake word service");
+		    		String command = "sudo service wakeword start";
+		    		Runtime.getRuntime().exec(command);
+			} catch (IOException e) {
+				log.error("Exception during wakeword service start: " + e.getMessage());
+				e.printStackTrace();
+				//if wakeword service does not start no need to continue 
+				System.exit(0);
+			}
 		
-		//play sound when token is received so we know we can start using it
-		//TODO change alarm.mp3 to something like "Hello, this is Alexa, how can i help you today"
-		tokenReceived = true;
-		player.playMp3FromResource("res/alarm.mp3");
+			//play sound when token is received so we know we can start using it
+			//TODO change alarm.mp3 to something like "Hello, this is Alexa, how can i help you today"
+			tokenReceived = true;
+			player.playMp3FromResource("res/alarm.mp3");
+		}
+		this.token = accessToken;
 	}
 
 	@Override
