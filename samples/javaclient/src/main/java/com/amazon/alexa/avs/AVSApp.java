@@ -256,7 +256,7 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		}
 	}
 
-	private token = null;
+	private String token = null;
 	
 	@Override
 	public synchronized void onAccessTokenReceived(String accessToken) {
