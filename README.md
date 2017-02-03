@@ -35,6 +35,20 @@ This project provides a step-by-step walkthrough to help you build a **hands-fre
 
 ## What's new?
 
+**January 30, 2017:**
+
+The AVS java sample app has been updated with the following changes:
+
+1. Added support for the SetEndpoint directive.  
+[See sample code »](https://github.com/alexa/alexa-avs-sample-app/blob/master/samples/javaclient/src/main/java/com/amazon/alexa/avs/AVSController.java#L520)  
+[Read the docs »](https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/reference/system#setendpoint)      
+2. Added support for the Settings Interface.  
+[See the code »](https://github.com/alexa/alexa-avs-sample-app/blob/master/samples/javaclient/src/main/java/com/amazon/alexa/avs/AVSController.java#L371)  
+[Read the docs »](https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/reference/settings)      
+3. Added locale switcher (en-US, en-GB, de-DE) to sample app user interface.  
+
+For information on how to update your client code, see [Preparing for Internationalization](https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/reference/preparing-for-internationalization) on the Amazon Developer Portal.  
+
 **December 8, 2016:**
 
 The AVS java sample app for Raspberry Pi has been updated for two changes:  

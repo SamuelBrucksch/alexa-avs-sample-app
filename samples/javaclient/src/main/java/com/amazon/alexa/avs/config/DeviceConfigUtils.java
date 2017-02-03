@@ -12,11 +12,6 @@
  */
 package com.amazon.alexa.avs.config;
 
-import com.amazon.alexa.avs.config.DeviceConfig.CompanionAppInformation;
-import com.amazon.alexa.avs.config.DeviceConfig.CompanionServiceInformation;
-
-import org.apache.commons.io.IOUtils;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -31,6 +26,11 @@ import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
+
+import org.apache.commons.io.IOUtils;
+
+import com.amazon.alexa.avs.config.DeviceConfig.CompanionAppInformation;
+import com.amazon.alexa.avs.config.DeviceConfig.CompanionServiceInformation;
 
 /**
  * A utility class for interacting with the config file. This class is used for creating
@@ -112,13 +112,14 @@ public final class DeviceConfigUtils {
                     configObject.getString(DeviceConfig.PROVISIONING_METHOD, null);
             String avsHost = configObject.getString(DeviceConfig.AVS_HOST, null);
             boolean wakeWordAgentEnabled = configObject.getBoolean(DeviceConfig.WAKE_WORD_AGENT_ENABLED, false);
-            
+            String locale = configObject.getString(DeviceConfig.LOCALE, null);
+
             boolean autoLoginEnabled = configObject.getBoolean(DeviceConfig.AUTO_LOGIN_ENABLED, false);
             String autoLoginUsername = configObject.getString(DeviceConfig.AUTO_LOGIN_USERNAME, "");
             String autoLoginPassword = configObject.getString(DeviceConfig.AUTO_LOGIN_PASSWORD, "");
             
             DeviceConfig deviceConfig = new DeviceConfig(productId, dsn, provisioningMethod,
-            		wakeWordAgentEnabled, companionAppInfo, companionServiceInfo, avsHost,
+                    wakeWordAgentEnabled, locale, companionAppInfo, companionServiceInfo, avsHost, 
             		autoLoginEnabled, autoLoginUsername, autoLoginPassword);
 
             return deviceConfig;

@@ -12,6 +12,9 @@
  */
 package com.amazon.alexa.avs.message.request;
 
+import java.util.Arrays;
+import java.util.List;
+
 import com.amazon.alexa.avs.AVSAPIConstants;
 import com.amazon.alexa.avs.SpeechProfile;
 import com.amazon.alexa.avs.exception.DirectiveHandlingException.ExceptionType;
@@ -29,13 +32,12 @@ import com.amazon.alexa.avs.message.request.context.ComponentState;
 import com.amazon.alexa.avs.message.request.context.PlaybackStatePayload;
 import com.amazon.alexa.avs.message.request.context.SpeechStatePayload;
 import com.amazon.alexa.avs.message.request.context.VolumeStatePayload;
+import com.amazon.alexa.avs.message.request.settings.Setting;
+import com.amazon.alexa.avs.message.request.settings.SettingsUpdatedPayload;
 import com.amazon.alexa.avs.message.request.speechrecognizer.SpeechRecognizerPayload;
 import com.amazon.alexa.avs.message.request.speechsynthesizer.SpeechLifecyclePayload;
 import com.amazon.alexa.avs.message.request.system.ExceptionEncounteredPayload;
 import com.amazon.alexa.avs.message.request.system.UserInactivityReportPayload;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class RequestFactory {
 
@@ -288,6 +290,13 @@ public class RequestFactory {
         Header header = new MessageIdHeader(AVSAPIConstants.System.NAMESPACE,
                 AVSAPIConstants.System.Events.UserInactivityReport.NAME);
         Event event = new Event(header, new UserInactivityReportPayload(inactiveTimeInSeconds));
+        return new RequestBody(event);
+    }
+
+    public static RequestBody createSettingsUpdatedEvent(List<Setting> settings) {
+        Header header = new MessageIdHeader(AVSAPIConstants.Settings.NAMESPACE,
+                AVSAPIConstants.Settings.Events.SettingsUpdated.NAME);
+        Event event = new Event(header, new SettingsUpdatedPayload(settings));
         return new RequestBody(event);
     }
 

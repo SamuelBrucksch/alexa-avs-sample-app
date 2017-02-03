@@ -3,6 +3,7 @@
     "dsn":"",
     "provisioningMethod":"",
     "wakeWordAgentEnabled":false,
+    "locale":"en-US",
     "autoLoginEnabled":false,
     "autoLoginUsername":"",
     "autoLoginPassword":"",

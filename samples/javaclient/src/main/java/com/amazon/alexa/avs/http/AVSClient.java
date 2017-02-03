@@ -31,6 +31,7 @@ import com.amazon.alexa.avs.message.response.AlexaExceptionResponse;
 import org.apache.commons.fileupload.MultipartStream;
 import org.apache.commons.fileupload.MultipartStream.MalformedStreamException;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -65,13 +66,13 @@ import java.util.concurrent.TimeUnit;
 public class AVSClient implements ConnectionListener {
     private static final Logger log = LoggerFactory.getLogger(AVSClient.class);
 
-    private static final int REQUEST_TIMEOUT_IN_S = 10;
+    private static final int REQUEST_TIMEOUT_IN_S = 15;
     private static final int REQUEST_ATTEMPTS = 3;
     private static final long REQUEST_RETRY_DELAY_MS = 1000;
 
     private static final String EVENTS_ENDPOINT = "/v20160207/events";
     private static final String DIRECTIVES_ENDPOINT = "/v20160207/directives";
-    private static final BlockingQueue<AVSRequest> requestQueue = new LinkedBlockingDeque<>();
+    private final BlockingQueue<AVSRequest> requestQueue;
 
     static final String METADATA_NAME = "metadata";
     static final String AUDIO_NAME = "audio";
@@ -99,8 +100,9 @@ public class AVSClient implements ConnectionListener {
 
     private HttpClient httpClient;
     private URL host;
+
     private SslContextFactory sslContextFactory;
-    private String accessToken = "";
+    private static String accessToken = "";
     private DownchannelRequestThread downchannelThread;
     private RequestThread requestThread;
     private MultipartParser requestResponseParser;
@@ -128,10 +130,9 @@ public class AVSClient implements ConnectionListener {
             SslContextFactory sslContextFactory, ParsingFailedHandler parsingFailedHandler)
                     throws Exception {
         http2Client = new HTTP2Client();
-
         this.host = host;
         this.sslContextFactory = sslContextFactory;
-
+        requestQueue = new LinkedBlockingDeque<>();
         requestResponseParser = new MultipartParser(multipartParserConsumer);
         downchannelParser = new MultipartParser(multipartParserConsumer);
 
@@ -140,9 +141,15 @@ public class AVSClient implements ConnectionListener {
         createNewHttpClient();
 
         requestThread = new RequestThread(requestQueue);
+
+        if (StringUtils.isNotBlank(accessToken)) {
+            startRequestThread();
+            startDownchannelThread();
+        }
     }
 
     private void createNewHttpClient() throws Exception {
+
         if ((httpClient != null) && httpClient.isStarted()) {
             try {
                 httpClient.stop();
@@ -188,6 +195,7 @@ public class AVSClient implements ConnectionListener {
 
         });
         httpClient.start();
+
     }
 
     private Request createRequest(Resource resource, ContentProvider content) throws Exception {
@@ -212,6 +220,7 @@ public class AVSClient implements ConnectionListener {
      * @param request
      */
     private void doRequest(AVSRequest avsRequest) {
+
         Callable<Void> task = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -383,9 +392,15 @@ public class AVSClient implements ConnectionListener {
                 requestResponseParser, listener));
     }
 
+    public void closeDownchannel() {
+        if (downchannelThread != null) {
+            downchannelThread.shutdownGracefully();
+        }
+    }
+
     /**
      * Get the Alexa Voice Service URL.
-     *
+     * 
      * @return URL the client is using for requests to Alexa Voice Service.
      */
     public URL getHost() {
@@ -537,6 +552,7 @@ public class AVSClient implements ConnectionListener {
                 try {
                     AVSRequest request = queue.take();
                     doRequest(request);
+
                     request.getRequestListener().ifPresent(l -> l.onRequestSuccess());
                 } catch (InterruptedException e) {
                     log.error("Exception in the request thread", e);

@@ -284,6 +284,21 @@ public final class AVSAPIConstants {
             public static final class ResetUserInactivity {
                 public static final String NAME = ResetUserInactivity.class.getSimpleName();
             }
+
+            public static final class SetEndpoint {
+                public static final String NAME = SetEndpoint.class.getSimpleName();
+            }
+        }
+    }
+
+    public static final class Settings {
+        public static final String NAMESPACE = "Settings";
+
+        public static final class Events {
+
+            public static final class SettingsUpdated {
+                public static final String NAME = "SettingsUpdated";
+            }
         }
     }
 }

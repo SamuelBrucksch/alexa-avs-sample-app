@@ -6,6 +6,7 @@
     "autoLoginEnabled":${Auto_Login_Enabled},
     "autoLoginUsername":"${Auto_Login_Username}",
     "autoLoginPassword":"${Auto_Login_Password}",
+    "locale":"${Locale}",
     "companionApp":{
         "localPort":8443,
         "sslKeyStore":"${Java_Client_Loc}/certs/server/jetty.pkcs12",

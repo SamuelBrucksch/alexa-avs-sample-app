@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
@@ -32,7 +33,8 @@ import javax.sound.sampled.LineUnavailableException;
 
 import com.amazon.alexa.avs.wakeword.WakeWordIPCFactory;
 
-public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCodeDisplayHandler, AccessTokenListener, ExpectStopCaptureListener, WakeWordDetectedHandler {
+public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCodeDisplayHandler, AccessTokenListener,
+		ExpectStopCaptureListener, WakeWordDetectedHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(AVSApp.class);
 
@@ -46,20 +48,20 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	private enum ButtonState {
 		START, STOP, PROCESSING;
 	}
-	
+
 	private ButtonState buttonState;
 
 	public static void main(String[] args) throws Exception {
-		//kill any running wake word service
+		// kill any running wake word service
 		try {
-		    // Execute command
+			// Execute command
 			System.out.println("Stopping wake word service");
-		    String command = "sudo service wakeword stop";
-		    Process child = Runtime.getRuntime().exec(command);
-		    child.waitFor();
+			String command = "sudo service wakeword stop";
+			Process child = Runtime.getRuntime().exec(command);
+			child.waitFor();
 		} catch (IOException e) {
 		}
-		
+
 		if (args.length == 1) {
 			new AVSApp(args[0]);
 		} else {
@@ -81,13 +83,13 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		System.out.println("Version " + getAppVersion());
 
 		tokenReceived = false;
-		
+
 		deviceConfig = config;
 		AVSAudioPlayerFactory factory = new AVSAudioPlayerFactory();
-		controller = new AVSController(this, factory, new AlertManagerFactory(), getAVSClientFactory(deviceConfig), DialogRequestIdAuthority.getInstance(),
-				config.getWakeWordAgentEnabled(), new WakeWordIPCFactory(), this);
+		controller = new AVSController(this, factory, new AlertManagerFactory(), getAVSClientFactory(deviceConfig),
+				DialogRequestIdAuthority.getInstance(), new WakeWordIPCFactory(), deviceConfig, this);
 		player = factory.getAudioPlayer(controller);
-		
+
 		authSetup = new AuthSetup(config, this);
 		authSetup.addAccessTokenListener(this);
 		authSetup.addAccessTokenListener(controller);
@@ -98,6 +100,12 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		controller.initializeStopCaptureHandler(this);
 		controller.startHandlingDirectives();
 		System.out.println("AVS App running...");
+
+		System.out.println("Current locale is " + deviceConfig.getLocale());
+//		Locale locale = Locale.GERMAN;
+//		deviceConfig.setLocale(locale);
+//		DeviceConfigUtils.updateConfigFile(deviceConfig);
+//		controller.setLocale(locale);
 	}
 
 	private String getAppVersion() {
@@ -257,10 +265,10 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 	}
 
 	private String token = null;
-	
+
 	@Override
 	public synchronized void onAccessTokenReceived(String accessToken) {
-		if (accessToken == null || accessToken.isEmpty()){
+		if (accessToken == null || accessToken.isEmpty()) {
 			System.out.println("Access token is empty or null!");
 			tokenReceived = false;
 			this.token = accessToken;
@@ -268,23 +276,25 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 		}
 		// this actually means that we are connected now and can use alexa
 		System.out.println("Access token received: " + accessToken + "\nConnected to Alexa Service.");
-		
-		//if this.accessToken == null then we receive it for the first time
-		if (this.token == null){
+
+		// if this.accessToken == null then we receive it for the first time
+		if (this.token == null) {
 			try {
 				// Execute command
 				System.out.println("Starting wake word service");
-		    		String command = "sudo service wakeword start";
-		    		Runtime.getRuntime().exec(command);
+				String command = "sudo service wakeword start";
+				Runtime.getRuntime().exec(command);
 			} catch (IOException e) {
 				log.error("Exception during wakeword service start: " + e.getMessage());
 				e.printStackTrace();
-				//if wakeword service does not start no need to continue 
+				// if wakeword service does not start no need to continue
 				System.exit(0);
 			}
-		
-			//play sound when token is received so we know we can start using it
-			//TODO change alarm.mp3 to something like "Hello, this is Alexa, how can i help you today"
+
+			// play sound when token is received so we know we can start using
+			// it
+			// TODO change alarm.mp3 to something like "Hello, this is Alexa,
+			// how can i help you today"
 			tokenReceived = true;
 			player.playMp3FromResource("res/alarm.mp3");
 		}
@@ -293,10 +303,10 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 	@Override
 	public synchronized void onWakeWordDetected() {
-		//prevent wake word action if not connected yet
+		// prevent wake word action if not connected yet
 		if (!tokenReceived)
 			return;
-		
+
 		if (buttonState == ButtonState.START) { // if in idle mode
 			System.out.println("Wake Word detected.");
 			doAction();
@@ -307,22 +317,25 @@ public class AVSApp implements ExpectSpeechListener, RecordingRMSListener, RegCo
 
 		@Override
 		public void onRequestSuccess() {
+			if (buttonState == ButtonState.STOP) 
+				doAction();
 			System.out.println("\r\nRequest success.");
 			finishProcessing();
 		}
 
 		@Override
 		public void onRequestError(Throwable e) {
-			//TODO currently alexa service hangs up if e returns null request error...
+			// TODO currently alexa service hangs up if e returns null request
+			// error...
 			if (e instanceof TimeoutException)
 				System.out.println("\r\nRequest timed out.");
 			else if (e instanceof LineUnavailableException)
 				System.out.println("\r\nMic unavailable...");
-			else{
+			else {
 				System.out.println("\r\nRequest error: " + e.getMessage());
 				e.printStackTrace();
 			}
-			
+
 			doAction();
 			finishProcessing();
 		}

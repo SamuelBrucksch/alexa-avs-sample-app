@@ -82,6 +82,43 @@ parse_user_input()
   done
 }
 
+#----------------------------------------------------------------
+# Function to select a user's preference between several options
+#----------------------------------------------------------------
+# Arguments are: result_var option1 option2...
+select_option()
+{
+  local _result=$1
+  local ARGS=("$@")
+  if [ "$#" -gt 0 ]; then
+      while [ true ]; do
+         local count=1
+         for option in "${ARGS[@]:1}"; do
+            echo "$count) $option"
+            ((count+=1))
+         done
+         echo ""
+         local USER_RESPONSE
+         read -p "Please select an option [1-$(($#-1))] " USER_RESPONSE
+         case $USER_RESPONSE in
+             ''|*[!0-9]*) echo "Please provide a valid number"
+                          continue
+                          ;;
+             *) if [[ "$USER_RESPONSE" -gt 0 && $((USER_RESPONSE+1)) -le "$#" ]]; then
+                    local SELECTION=${ARGS[($USER_RESPONSE)]}
+                    echo "Selection: $SELECTION"
+                    eval $_result=\$SELECTION
+                    return
+                else
+                    clear
+                    echo "Please select a valid option"
+                fi
+                ;;
+         esac
+      done
+  fi
+}
+
 #-------------------------------------------------------
 # Function to retrieve user account credentials
 #-------------------------------------------------------
@@ -317,28 +354,56 @@ fi
 
 check_credentials
 
-# Force audio to correct output
+# Preconfigured variables
+OS=rpi
+User=$(id -un)
+Group=$(id -gn)
+Origin=$(pwd)
+Samples_Loc=$Origin/samples
+Java_Client_Loc=$Samples_Loc/javaclient
+Wake_Word_Agent_Loc=$Samples_Loc/wakeWordAgent
+Companion_Service_Loc=$Samples_Loc/companionService
+Kitt_Ai_Loc=$Wake_Word_Agent_Loc/kitt_ai
+Sensory_Loc=$Wake_Word_Agent_Loc/sensory
+External_Loc=$Wake_Word_Agent_Loc/ext
+Locale="en-US"
+
+mkdir $Kitt_Ai_Loc
+mkdir $Sensory_Loc
+mkdir $External_Loc
+
+
+# Select a Locale
 clear
-echo "==== Setting Audio Output ====="
+echo "==== Setting Locale ====="
 echo ""
 echo ""
-echo "Are you using 3.5mm jack for audio output?"
-echo ""
-echo ""
-echo "Please respond (y) for 3.5mm jack, or (n) for HDMI audio output."
+echo "Which locale would you like to use?"
 echo ""
 echo ""
 echo "======================================================="
 echo ""
 echo ""
-parse_user_input 1 1 1
-USER_RESPONSE=$?
-if [ "$USER_RESPONSE" = "$NO_ANSWER" ]; then
-  sudo amixer cset numid=3 2
-  echo "Audio forced to HDMI."
-else
+select_option Locale "en-US" "en-GB" "de-DE"
+
+# Force audio to correct output
+clear
+echo "==== Setting Audio Output ====="
+echo ""
+echo ""
+echo "Are you using 3.5mm jack or HDMI cable for audio output?"
+echo ""
+echo ""
+echo "======================================================="
+echo ""
+echo ""
+select_option audio_output "3.5mm jack" "HDMI audio output"
+if [ "$audio_output" == "3.5mm jack" ]; then
   sudo amixer cset numid=3 1
   echo "Audio forced to 3.5mm jack."
+else
+  sudo amixer cset numid=3 2
+  echo "Audio forced to HDMI."
 fi
 
 Wake_Word_Detection_Enabled="true"
@@ -411,24 +476,6 @@ echo "Enter your Amazon password here (doesn't echo) or enter it manually in /sa
 read -p "Password: " -s Auto_Login_Password
 echo
 fi
-
-# Preconfigured variables
-OS=rpi
-User=$(id -un)
-Group=$(id -gn)
-Origin=$(pwd)
-Samples_Loc=$Origin/samples
-Java_Client_Loc=$Samples_Loc/javaclient
-Wake_Word_Agent_Loc=$Samples_Loc/wakeWordAgent
-Companion_Service_Loc=$Samples_Loc/companionService
-Kitt_Ai_Loc=$Wake_Word_Agent_Loc/kitt_ai
-Sensory_Loc=$Wake_Word_Agent_Loc/sensory
-External_Loc=$Wake_Word_Agent_Loc/ext
-
-mkdir $Kitt_Ai_Loc
-mkdir $Sensory_Loc
-mkdir $External_Loc
-
 echo ""
 echo ""
 echo "==============================================="
@@ -460,7 +507,6 @@ sudo apt-get upgrade -y
 
 echo "========== Installing Git ============"
 sudo apt-get install -y git
-
 
 echo "========== Getting the code for Kitt-Ai ==========="
 cd $Kitt_Ai_Loc

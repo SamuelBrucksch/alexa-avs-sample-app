@@ -15,6 +15,7 @@ package com.amazon.alexa.avs;
 import com.amazon.alexa.avs.AVSAudioPlayer.AlexaSpeechListener;
 import com.amazon.alexa.avs.AlertManager.ResultListener;
 import com.amazon.alexa.avs.auth.AccessTokenListener;
+import com.amazon.alexa.avs.config.DeviceConfig;
 import com.amazon.alexa.avs.exception.DirectiveHandlingException;
 import com.amazon.alexa.avs.exception.DirectiveHandlingException.ExceptionType;
 import com.amazon.alexa.avs.http.AVSClient;
@@ -23,6 +24,8 @@ import com.amazon.alexa.avs.http.LinearRetryPolicy;
 import com.amazon.alexa.avs.http.ParsingFailedHandler;
 import com.amazon.alexa.avs.message.request.RequestBody;
 import com.amazon.alexa.avs.message.request.RequestFactory;
+import com.amazon.alexa.avs.message.request.settings.LocaleSetting;
+import com.amazon.alexa.avs.message.request.settings.Setting;
 import com.amazon.alexa.avs.message.response.Directive;
 import com.amazon.alexa.avs.message.response.alerts.DeleteAlert;
 import com.amazon.alexa.avs.message.response.alerts.SetAlert;
@@ -32,6 +35,7 @@ import com.amazon.alexa.avs.message.response.audioplayer.Play;
 import com.amazon.alexa.avs.message.response.speaker.SetMute;
 import com.amazon.alexa.avs.message.response.speaker.VolumePayload;
 import com.amazon.alexa.avs.message.response.speechsynthesizer.Speak;
+import com.amazon.alexa.avs.message.response.system.SetEndpoint;
 import com.amazon.alexa.avs.wakeword.WakeWordDetectedHandler;
 import com.amazon.alexa.avs.wakeword.WakeWordIPC;
 import com.amazon.alexa.avs.wakeword.WakeWordIPC.IPCCommand;
@@ -42,9 +46,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -61,7 +70,8 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
         UserActivityListener, WakeWordDetectedHandler {
 
     private AudioCapture microphone;
-    private final AVSClient avsClient;
+    private AVSClient avsClient;
+
     private final DialogRequestIdAuthority dialogRequestIdAuthority;
     private AlertManager alertManager;
     private boolean eventRunning = false; // is an event currently being sent
@@ -83,7 +93,6 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
     private BlockingQueue<Directive> dependentQueue;
     private BlockingQueue<Directive> independentQueue;
     public SpeechRequestAudioPlayerPauseController speechRequestAudioPlayerPauseController;
-
     private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
 
     private AtomicLong lastUserInteractionTimestampSeconds;
@@ -99,15 +108,19 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
     private final int WAKE_WORD_AGENT_PORT_NUMBER = 5123;
     private final int WAKE_WORD_RELEASE_TRIES = 5;
     private final int WAKE_WORD_RELEASE_RETRY_DELAY_MS = 1000;
+    private final AVSClientFactory avsClientFactory;
+    private final DirectiveEnqueuer directiveEnqueuer;
+    private DeviceConfig config;
 
     public AVSController(ExpectSpeechListener listenHandler, AVSAudioPlayerFactory audioFactory,
             AlertManagerFactory alarmFactory, AVSClientFactory avsClientFactory,
-            DialogRequestIdAuthority dialogRequestIdAuthority, boolean wakeWordAgentEnabled,
-            WakeWordIPCFactory wakewordIPCFactory, WakeWordDetectedHandler wakeWakeDetectedHandler)
+            DialogRequestIdAuthority dialogRequestIdAuthority,
+            WakeWordIPCFactory wakewordIPCFactory, DeviceConfig config, WakeWordDetectedHandler wakeWakeDetectedHandler)
                     throws Exception {
-
-        this.wakeWordAgentEnabled = wakeWordAgentEnabled;
+        this.avsClientFactory = avsClientFactory;
+        this.wakeWordAgentEnabled = config.getWakeWordAgentEnabled();
         this.wakeWordDetectedHandler = wakeWakeDetectedHandler;
+        this.config = config;
 
         if (this.wakeWordAgentEnabled) {
             try {
@@ -136,7 +149,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
         independentQueue = new LinkedBlockingDeque<>();
 
-        DirectiveEnqueuer directiveEnqueuer =
+        directiveEnqueuer =
                 new DirectiveEnqueuer(dialogRequestIdAuthority, dependentQueue, independentQueue);
 
         avsClient = avsClientFactory.getAVSClient(directiveEnqueuer, this);
@@ -176,6 +189,8 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
         scheduledExecutor.scheduleAtFixedRate(new UserInactivityReport(),
                 USER_INACTIVITY_REPORT_PERIOD_HOURS, USER_INACTIVITY_REPORT_PERIOD_HOURS,
                 TimeUnit.HOURS);
+
+        setLocale(config.getLocale());
     }
 
     private void getMicrophone(AVSController controller) throws LineUnavailableException {
@@ -348,6 +363,17 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
         eventRunning = false;
     }
 
+    /**
+     * Set this device account's locale to the given locale by
+     * sending a SettingsUpdated event to AlexaService.
+     * @param locale
+     */
+    public void setLocale(Locale locale) {
+        List<Setting> settings = new ArrayList<>();
+        settings.add(new LocaleSetting(locale.toLanguageTag()));
+        sendRequest(RequestFactory.createSettingsUpdatedEvent(settings));
+    }
+
     public boolean eventRunning() {
         return eventRunning;
     }
@@ -362,17 +388,17 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
             speechRequestAudioPlayerPauseController.dispatchDirective();
         }
         try {
-            if (directiveNamespace.equals(AVSAPIConstants.SpeechRecognizer.NAMESPACE)) {
+            if (AVSAPIConstants.SpeechRecognizer.NAMESPACE.equals(directiveNamespace)) {
                 handleSpeechRecognizerDirective(directive);
-            } else if (directiveNamespace.equals(AVSAPIConstants.SpeechSynthesizer.NAMESPACE)) {
+            } else if (AVSAPIConstants.SpeechSynthesizer.NAMESPACE.equals(directiveNamespace)) {
                 handleSpeechSynthesizerDirective(directive);
-            } else if (directiveNamespace.equals(AVSAPIConstants.AudioPlayer.NAMESPACE)) {
+            } else if (AVSAPIConstants.AudioPlayer.NAMESPACE.equals(directiveNamespace)) {
                 handleAudioPlayerDirective(directive);
-            } else if (directiveNamespace.equals(AVSAPIConstants.Alerts.NAMESPACE)) {
+            } else if (AVSAPIConstants.Alerts.NAMESPACE.equals(directiveNamespace)) {
                 handleAlertsDirective(directive);
-            } else if (directiveNamespace.equals(AVSAPIConstants.Speaker.NAMESPACE)) {
+            } else if (AVSAPIConstants.Speaker.NAMESPACE.equals(directiveNamespace)) {
                 handleSpeakerDirective(directive);
-            } else if (directiveNamespace.equals(AVSAPIConstants.System.NAMESPACE)) {
+            } else if (AVSAPIConstants.System.NAMESPACE.equals(directiveNamespace)) {
                 handleSystemDirective(directive);
             } else {
                 throw new DirectiveHandlingException(ExceptionType.UNSUPPORTED_OPERATION,
@@ -397,11 +423,11 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
     private void handleAudioPlayerDirective(Directive directive) throws DirectiveHandlingException {
         String directiveName = directive.getName();
-        if (directiveName.equals(AVSAPIConstants.AudioPlayer.Directives.Play.NAME)) {
+        if (AVSAPIConstants.AudioPlayer.Directives.Play.NAME.equals(directiveName)) {
             player.handlePlay((Play) directive.getPayload());
-        } else if (directiveName.equals(AVSAPIConstants.AudioPlayer.Directives.Stop.NAME)) {
+        } else if (AVSAPIConstants.AudioPlayer.Directives.Stop.NAME.equals(directiveName)) {
             player.handleStop();
-        } else if (directiveName.equals(AVSAPIConstants.AudioPlayer.Directives.ClearQueue.NAME)) {
+        } else if (AVSAPIConstants.AudioPlayer.Directives.ClearQueue.NAME.equals(directiveName)) {
             player.handleClearQueue((ClearQueue) directive.getPayload());
         } else {
             throw new DirectiveHandlingException(ExceptionType.UNSUPPORTED_OPERATION,
@@ -413,6 +439,8 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
         String directiveName = directive.getName();
         if (AVSAPIConstants.System.Directives.ResetUserInactivity.NAME.equals(directiveName)) {
             onUserActivity();
+        } else if (AVSAPIConstants.System.Directives.SetEndpoint.NAME.equals(directiveName)) {
+            handleSetEndpoint((SetEndpoint) directive.getPayload());
         } else {
             throw new DirectiveHandlingException(ExceptionType.UNSUPPORTED_OPERATION,
                     "The device's system component cannot handle this directive.");
@@ -421,7 +449,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
     private void handleSpeechSynthesizerDirective(Directive directive)
             throws DirectiveHandlingException {
-        if (directive.getName().equals(AVSAPIConstants.SpeechSynthesizer.Directives.Speak.NAME)) {
+        if (AVSAPIConstants.SpeechSynthesizer.Directives.Speak.NAME.equals(directive.getName())) {
             player.handleSpeak((Speak) directive.getPayload());
         } else {
             throw new DirectiveHandlingException(ExceptionType.UNSUPPORTED_OPERATION,
@@ -429,10 +457,11 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
         }
     }
 
-    private void handleSpeechRecognizerDirective(Directive directive)
-            throws DirectiveHandlingException {
+
+    private void handleSpeechRecognizerDirective(Directive directive) throws DirectiveHandlingException {
         String directiveName = directive.getName();
         if (AVSAPIConstants.SpeechRecognizer.Directives.ExpectSpeech.NAME.equals(directiveName)) {
+
             // If your device cannot handle automatically starting to listen, you must
             // implement a listen timeout event, as described here:
             // https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/rest/speechrecognizer-listentimeout-request
@@ -448,7 +477,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
     private void handleAlertsDirective(Directive directive) throws DirectiveHandlingException {
         String directiveName = directive.getName();
-        if (directiveName.equals(AVSAPIConstants.Alerts.Directives.SetAlert.NAME)) {
+        if (AVSAPIConstants.Alerts.Directives.SetAlert.NAME.equals(directiveName)) {
             SetAlert payload = (SetAlert) directive.getPayload();
             String alertToken = payload.getToken();
             ZonedDateTime scheduledTime = payload.getScheduledTime();
@@ -465,7 +494,7 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
             Alert alert = new Alert(alertToken, type, scheduledTime);
             alertManager.add(alert);
-        } else if (directiveName.equals(AVSAPIConstants.Alerts.Directives.DeleteAlert.NAME)) {
+        } else if (AVSAPIConstants.Alerts.Directives.DeleteAlert.NAME.equals(directiveName)) {
             DeleteAlert payload = (DeleteAlert) directive.getPayload();
             alertManager.delete(payload.getToken());
         } else {
@@ -476,15 +505,37 @@ public class AVSController implements RecordingStateListener, AlertHandler, Aler
 
     private void handleSpeakerDirective(Directive directive) throws DirectiveHandlingException {
         String directiveName = directive.getName();
-        if (directiveName.equals(AVSAPIConstants.Speaker.Directives.SetVolume.NAME)) {
+        if (AVSAPIConstants.Speaker.Directives.SetVolume.NAME.equals(directiveName)) {
             player.handleSetVolume((VolumePayload) directive.getPayload());
-        } else if (directiveName.equals(AVSAPIConstants.Speaker.Directives.AdjustVolume.NAME)) {
+        } else if (AVSAPIConstants.Speaker.Directives.AdjustVolume.NAME.equals(directiveName)) {
             player.handleAdjustVolume((VolumePayload) directive.getPayload());
-        } else if (directiveName.equals(AVSAPIConstants.Speaker.Directives.SetMute.NAME)) {
+        } else if (AVSAPIConstants.Speaker.Directives.SetMute.NAME.equals(directiveName)) {
             player.handleSetMute((SetMute) directive.getPayload());
         } else {
             throw new DirectiveHandlingException(ExceptionType.UNSUPPORTED_OPERATION,
                     "The device's speaker component cannot handle this directive.");
+        }
+    }
+
+    private void handleSetEndpoint(SetEndpoint setEndpoint) throws DirectiveHandlingException {
+        try {
+            URL endpoint = new URL(setEndpoint.getEndpoint());
+            if (endpoint.equals(avsClient.getHost())) {
+                return;
+            }
+            config.setAvsHost(endpoint);
+            config.saveConfig();
+
+            avsClient.closeDownchannel();
+            avsClient = avsClientFactory.getAVSClient(directiveEnqueuer, this);
+        } catch (MalformedURLException e) {
+            log.error("The SetEndpoint payload had a malformed URL");
+            throw new DirectiveHandlingException(ExceptionType.UNEXPECTED_INFORMATION_RECEIVED,
+                    "Received SetEndpoint directive with malformed url");
+        } catch (Exception e) {
+            log.error("Failed to set a new avs client.");
+            throw new DirectiveHandlingException(ExceptionType.INTERNAL_ERROR,
+                    "Error while creating avsClient");
         }
     }
 
