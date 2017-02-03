@@ -12,6 +12,7 @@ Alexa steps
 * enter Device ID, and the other 2 Strings like in the original instructions
 * ``. automated_install.sh``
 * if you want to make use of the additional features added here you need to select auto start and enter working credentials
+* At the end of the automated install it prints out commands to start AWS however on reboot it should start automatically so those steps are not required.
 * (optional) configure alsa based on your config. you can test with aplay test.wav and arecord -d 10 test.wav, both should work without any additional parameters. If both commands work then alexa will work as well (at least audio wise).
 * (optional) increase speaker volume as default is quite low, open ``alsamixer`` to increase volume and save with ``sudo alsactl store``
 * reboot
